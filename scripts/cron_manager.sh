@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# MoistureSensor MQTT Client - Cron Job Helper Script
+# Moisture Daemon MQTT Client - Cron Job Helper Script
 # This script provides easy management of the cron job
 
 APP_USER="moisture"
-APP_DIR="/opt/moisture-client"
-CRON_FILE="/etc/cron.d/moisture-client"
+APP_DIR="/opt/moisture-daemon"
+CRON_FILE="/etc/cron.d/moisture-daemon"
 
 print_usage() {
     echo "Usage: $0 {install|uninstall|status|logs|test}"
@@ -23,10 +23,10 @@ install_cron() {
     echo "Installing cron job..."
     
     cat > "$CRON_FILE" << EOF
-# MoistureSensor MQTT Client - runs every 5 minutes
-# Logs are written to /var/log/moisture-client/cron.log
+# Moisture Daemon MQTT Client - runs every 5 minutes
+# Logs are written to /var/log/moisture-daemon/cron.log
 
-*/5 * * * * $APP_USER cd $APP_DIR && $APP_DIR/venv/bin/python $APP_DIR/moisture_client.py >> /var/log/moisture-client/cron.log 2>&1
+*/5 * * * * $APP_USER cd $APP_DIR && $APP_DIR/venv/bin/python $APP_DIR/moisture_client.py >> /var/log/moisture-daemon/cron.log 2>&1
 EOF
     
     chmod 0644 "$CRON_FILE"
@@ -74,8 +74,8 @@ show_status() {
     
     echo ""
     echo "Recent application logs:"
-    if [ -f "/var/log/moisture-client/cron.log" ]; then
-        tail -10 /var/log/moisture-client/cron.log
+    if [ -f "/var/log/moisture-daemon/cron.log" ]; then
+        tail -10 /var/log/moisture-daemon/cron.log
     else
         echo "No cron logs found"
     fi
@@ -85,18 +85,18 @@ show_logs() {
     echo "Recent Cron Logs:"
     echo "=================="
     
-    if [ -f "/var/log/moisture-client/cron.log" ]; then
-        tail -50 /var/log/moisture-client/cron.log
+    if [ -f "/var/log/moisture-daemon/cron.log" ]; then
+        tail -50 /var/log/moisture-daemon/cron.log
     else
-        echo "No cron logs found at /var/log/moisture-client/cron.log"
+        echo "No cron logs found at /var/log/moisture-daemon/cron.log"
     fi
     
     echo ""
     echo "Recent Application Logs:"
     echo "========================"
     
-    if [ -f "/var/log/moisture-client/moisture_client.log" ]; then
-        tail -20 /var/log/moisture-client/moisture_client.log
+    if [ -f "/var/log/moisture-daemon/moisture_client.log" ]; then
+        tail -20 /var/log/moisture-daemon/moisture_client.log
     else
         echo "No application logs found"
     fi

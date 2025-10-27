@@ -1,4 +1,4 @@
-# MoistureSensor MQTT Client Dependencies
+# Moisture Daemon MQTT Client Dependencies
 # Python 3.8+ required
 
 # MQTT Client

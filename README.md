@@ -1,6 +1,6 @@
-# MoistureSensor MQTT Client
+# Moisture Daemon
 
-A Python application that listens to MQTT messages from moisture sensors and logs the data to a MySQL database. Designed to run as a cron job on Ubuntu servers.
+A Python daemon application that listens to MQTT messages from moisture sensors and logs the data to a MySQL database. Designed to run as a cron job on Ubuntu servers.
 
 ## Features
 
@@ -15,7 +15,7 @@ A Python application that listens to MQTT messages from moisture sensors and log
 ## Architecture
 
 ```
-MoistureSensor (ESP32) → MQTT Broker → MoistureClient → MySQL Database
+MoistureSensor (ESP32) → MQTT Broker → moisture_daemon → MySQL Database
                                             ↓
                                     Health Monitor → Alerts/Metrics
 ```
@@ -23,7 +23,7 @@ MoistureSensor (ESP32) → MQTT Broker → MoistureClient → MySQL Database
 ## Directory Structure
 
 ```
-MoistureClient/
+moisture_daemon/
 ├── moisture_client.py          # Main application
 ├── requirements.txt            # Python dependencies
 ├── config/
@@ -41,8 +41,8 @@ MoistureClient/
 ### 1. Installation on Ubuntu Server
 
 ```bash
-# Clone or copy the MoistureClient directory to your server
-cd /path/to/MoistureClient
+# Clone or copy the moisture_daemon directory to your server
+cd /path/to/moisture_daemon
 
 # Run the installation script (requires sudo)
 sudo ./scripts/install.sh
@@ -59,7 +59,7 @@ This will:
 
 Edit the configuration file:
 ```bash
-sudo nano /opt/moisture-client/config/.env
+sudo nano /opt/moisture-daemon/config/.env
 ```
 
 Update with your settings:
@@ -82,7 +82,7 @@ DB_PASSWORD=your-secure-password
 
 ```bash
 # Set up MySQL database and tables
-cd /opt/moisture-client
+cd /opt/moisture-daemon
 sudo -u moisture ./venv/bin/python scripts/setup_database.py
 ```
 
@@ -90,14 +90,14 @@ sudo -u moisture ./venv/bin/python scripts/setup_database.py
 
 ```bash
 # Test the application
-sudo -u moisture /opt/moisture-client/venv/bin/python /opt/moisture-client/moisture_client.py
+sudo -u moisture /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/moisture_client.py
 
 # Start as systemd service
-sudo systemctl start moisture-client
-sudo systemctl status moisture-client
+sudo systemctl start moisture-daemon
+sudo systemctl status moisture-daemon
 
 # View logs
-sudo journalctl -u moisture-client -f
+sudo journalctl -u moisture-daemon -f
 ```
 
 ## Configuration Options
@@ -159,7 +159,7 @@ The application is designed to run as a cron job with a maximum runtime (default
 
 Default cron job (runs every 5 minutes):
 ```bash
-*/5 * * * * moisture cd /opt/moisture-client && /opt/moisture-client/venv/bin/python /opt/moisture-client/moisture_client.py >> /var/log/moisture-client/cron.log 2>&1
+*/5 * * * * moisture cd /opt/moisture-daemon && /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/moisture_client.py >> /var/log/moisture-daemon/cron.log 2>&1
 ```
 
 ### Custom Cron Schedule
@@ -172,13 +172,13 @@ sudo crontab -e -u moisture
 Examples:
 ```bash
 # Every minute
-* * * * * /opt/moisture-client/venv/bin/python /opt/moisture-client/moisture_client.py
+* * * * * /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/moisture_client.py
 
 # Every 10 minutes
-*/10 * * * * /opt/moisture-client/venv/bin/python /opt/moisture-client/moisture_client.py
+*/10 * * * * /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/moisture_client.py
 
 # Hourly
-0 * * * * /opt/moisture-client/venv/bin/python /opt/moisture-client/moisture_client.py
+0 * * * * /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/moisture_client.py
 ```
 
 ## Health Monitoring
@@ -186,10 +186,10 @@ Examples:
 Run health checks:
 ```bash
 # Manual health check
-sudo -u moisture /opt/moisture-client/venv/bin/python /opt/moisture-client/scripts/health_monitor.py
+sudo -u moisture /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/scripts/health_monitor.py
 
 # Add to cron for regular monitoring
-0 */6 * * * moisture /opt/moisture-client/venv/bin/python /opt/moisture-client/scripts/health_monitor.py
+0 */6 * * * moisture /opt/moisture-daemon/venv/bin/python /opt/moisture-daemon/scripts/health_monitor.py
 ```
 
 Health monitoring includes:
@@ -222,7 +222,7 @@ Alternative field names are supported:
 
 ## Logging
 
-Logs are stored in `/var/log/moisture-client/` with automatic rotation:
+Logs are stored in `/var/log/moisture-daemon/` with automatic rotation:
 - `moisture_client.log`: Main application logs
 - `cron.log`: Cron job execution logs
 - `metrics.json`: Health monitoring metrics
@@ -251,32 +251,32 @@ Log levels: DEBUG, INFO, WARNING, ERROR
 3. **Permission Issues**
    ```bash
    # Check file permissions
-   ls -la /opt/moisture-client/
+   ls -la /opt/moisture-daemon/
    
    # Fix permissions if needed
-   sudo chown -R moisture:moisture /opt/moisture-client/
+   sudo chown -R moisture:moisture /opt/moisture-daemon/
    ```
 
 4. **Service Won't Start**
    ```bash
    # Check service status
-   sudo systemctl status moisture-client
+   sudo systemctl status moisture-daemon
    
    # View detailed logs
-   sudo journalctl -u moisture-client -n 50
+   sudo journalctl -u moisture-daemon -n 50
    ```
 
 ### Log Analysis
 
 ```bash
 # View recent logs
-sudo tail -f /var/log/moisture-client/moisture_client.log
+sudo tail -f /var/log/moisture-daemon/moisture_client.log
 
 # Search for errors
-sudo grep ERROR /var/log/moisture-client/moisture_client.log
+sudo grep ERROR /var/log/moisture-daemon/moisture_client.log
 
 # Monitor cron execution
-sudo tail -f /var/log/moisture-client/cron.log
+sudo tail -f /var/log/moisture-daemon/cron.log
 ```
 
 ## Maintenance
@@ -286,7 +286,7 @@ sudo tail -f /var/log/moisture-client/cron.log
 1. **Monitor Logs**
    ```bash
    # Check for errors weekly
-   sudo grep -i error /var/log/moisture-client/*.log
+   sudo grep -i error /var/log/moisture-daemon/*.log
    ```
 
 2. **Database Maintenance**
@@ -298,13 +298,13 @@ sudo tail -f /var/log/moisture-client/cron.log
 3. **Update Application**
    ```bash
    # Stop service
-   sudo systemctl stop moisture-client
+   sudo systemctl stop moisture-daemon
    
    # Update files
-   sudo cp new_moisture_client.py /opt/moisture-client/
+   sudo cp new_moisture_client.py /opt/moisture-daemon/
    
    # Start service
-   sudo systemctl start moisture-client
+   sudo systemctl start moisture-daemon
    ```
 
 ### Backup
@@ -314,7 +314,7 @@ sudo tail -f /var/log/moisture-client/cron.log
 mysqldump -u root -p moisture_db > moisture_backup_$(date +%Y%m%d).sql
 
 # Backup configuration
-sudo cp -r /opt/moisture-client/config/ ~/moisture_config_backup/
+sudo cp -r /opt/moisture-daemon/config/ ~/moisture_config_backup/
 ```
 
 ## Security Considerations

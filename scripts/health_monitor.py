@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Health Monitor for MoistureSensor MQTT Client
+Health Monitor for Moisture Daemon MQTT Client
 
-This script monitors the health of the moisture client application
+This script monitors the health of the moisture daemon application
 and can be used for alerting and metrics collection.
 
 Author: Bob Day
@@ -287,7 +287,7 @@ class HealthMonitor:
     def print_report(self, report: Dict[str, Any]):
         """Print a human-readable health report."""
         print("=" * 60)
-        print("MoistureSensor Health Report")
+        print("Moisture Daemon Health Report")
         print("=" * 60)
         print(f"Generated: {report['timestamp']}")
         print()

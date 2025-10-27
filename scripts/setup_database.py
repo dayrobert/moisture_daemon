@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database setup script for MoistureSensor MQTT Client
+Database setup script for Moisture Daemon MQTT Client
 
 This script creates the necessary database and tables for storing
 moisture sensor data.
@@ -255,7 +255,7 @@ def verify_database():
 
 
 if __name__ == "__main__":
-    print("MoistureSensor Database Setup")
+    print("Moisture Daemon Database Setup")
     print("=" * 40)
     
     if setup_database():

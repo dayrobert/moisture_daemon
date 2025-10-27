@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-MQTT Moisture Sensor Client
+Moisture Daemon MQTT Client
 
-This application listens to MQTT messages from moisture sensors and logs
+This daemon application listens to MQTT messages from moisture sensors and logs
 the data to a MySQL database. Designed to run as a cron job on Ubuntu server.
 
 Author: Bob Day

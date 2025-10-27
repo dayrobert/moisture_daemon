@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# MoistureSensor MQTT Client Setup Script
+# Moisture Daemon MQTT Client Setup Script
 # Run this script on your Ubuntu server to set up the application
 
 set -e
 
 echo "========================================="
-echo "MoistureSensor MQTT Client Setup"
+echo "Moisture Daemon Setup"
 echo "========================================="
 
 # Configuration
-APP_NAME="moisture-client"
+APP_NAME="moisture-daemon"
 APP_USER="moisture"
-APP_DIR="/opt/moisture-client"
-LOG_DIR="/var/log/moisture-client"
+APP_DIR="/opt/moisture-daemon"
+LOG_DIR="/var/log/moisture-daemon"
 SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
 CRON_FILE="/etc/cron.d/${APP_NAME}"
 
@@ -146,7 +146,7 @@ create_service() {
     
     cat > "$SERVICE_FILE" << EOF
 [Unit]
-Description=MoistureSensor MQTT Client
+Description=Moisture Daemon MQTT Client
 After=network.target mysql.service
 Wants=mysql.service
 
@@ -185,7 +185,7 @@ create_cron_job() {
     print_status "Creating cron job..."
     
     cat > "$CRON_FILE" << EOF
-# MoistureSensor MQTT Client - runs every 5 minutes
+# Moisture Daemon MQTT Client - runs every 5 minutes
 # Logs are written to $LOG_DIR/cron.log
 
 */5 * * * * $APP_USER cd $APP_DIR && $APP_DIR/venv/bin/python $APP_DIR/moisture_client.py >> $LOG_DIR/cron.log 2>&1
@@ -222,7 +222,7 @@ create_config_template() {
     
     if [ ! -f "$APP_DIR/config/.env" ]; then
         cat > "$APP_DIR/config/.env" << EOF
-# MoistureSensor MQTT Client Configuration
+# Moisture Daemon MQTT Client Configuration
 # Update these values for your environment
 
 # MQTT Configuration
