@@ -61,67 +61,97 @@ def setup_database():
         CREATE TABLE IF NOT EXISTS moisture_readings (
             id INT AUTO_INCREMENT PRIMARY KEY,
             sensor_id VARCHAR(50) NOT NULL,
-            timestamp DATETIME NOT NULL,
+            timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             moisture_level FLOAT NOT NULL,
             temperature FLOAT,
             humidity FLOAT,
             battery_level FLOAT,
-            raw_data JSON,
+            signal_strength INT,
+            location VARCHAR(100),
+            metadata JSON,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_sensor_timestamp (sensor_id, timestamp),
-            INDEX idx_timestamp (timestamp),
-            INDEX idx_sensor_id (sensor_id)
+            INDEX idx_timestamp (timestamp)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         
         cursor.execute(create_table_query)
         
-        # Create sensors table for sensor metadata
-        print("Creating sensors table...")
+        # Create sensor_status table
+        print("Creating sensor_status table...")
         create_sensors_query = """
-        CREATE TABLE IF NOT EXISTS sensors (
+        CREATE TABLE IF NOT EXISTS sensor_status (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            sensor_id VARCHAR(50) UNIQUE NOT NULL,
-            name VARCHAR(100),
+            sensor_id VARCHAR(50) NOT NULL UNIQUE,
+            last_seen DATETIME,
+            status ENUM('active', 'inactive', 'error') DEFAULT 'active',
             location VARCHAR(100),
-            description TEXT,
-            is_active BOOLEAN DEFAULT TRUE,
+            battery_level FLOAT,
+            firmware_version VARCHAR(20),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             INDEX idx_sensor_id (sensor_id),
-            INDEX idx_active (is_active)
+            INDEX idx_status (status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         
         cursor.execute(create_sensors_query)
         
-        # Create alerts table for threshold monitoring
+        # Create alerts table
         print("Creating alerts table...")
         create_alerts_query = """
         CREATE TABLE IF NOT EXISTS alerts (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            sensor_id VARCHAR(50) NOT NULL,
-            alert_type ENUM('moisture_low', 'moisture_high', 'battery_low', 'sensor_offline') NOT NULL,
-            threshold_value FLOAT,
-            actual_value FLOAT,
+            sensor_id VARCHAR(50),
+            alert_type ENUM('low_moisture', 'low_battery', 'sensor_offline', 'high_temperature') NOT NULL,
             message TEXT,
-            is_resolved BOOLEAN DEFAULT FALSE,
+            severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+            acknowledged BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            resolved_at TIMESTAMP NULL,
-            INDEX idx_sensor_id (sensor_id),
-            INDEX idx_alert_type (alert_type),
-            INDEX idx_created_at (created_at),
-            INDEX idx_unresolved (is_resolved, created_at),
-            FOREIGN KEY (sensor_id) REFERENCES sensors(sensor_id) ON DELETE CASCADE
+            acknowledged_at TIMESTAMP NULL,
+            INDEX idx_sensor_alert (sensor_id, alert_type),
+            INDEX idx_created (created_at),
+            INDEX idx_acknowledged (acknowledged)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """
         
         cursor.execute(create_alerts_query)
         
-        # Create summary statistics view
-        print("Creating daily_summary view...")
-        create_view_query = """
-        CREATE OR REPLACE VIEW daily_summary AS
+        # Create system_health table
+        print("Creating system_health table...")
+        create_system_health_query = """
+        CREATE TABLE IF NOT EXISTS system_health (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            component VARCHAR(50) NOT NULL,
+            status ENUM('healthy', 'warning', 'error') DEFAULT 'healthy',
+            message TEXT,
+            metrics JSON,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_component (component),
+            INDEX idx_timestamp (timestamp)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """
+        
+        cursor.execute(create_system_health_query)
+        
+        # Create views
+        print("Creating v_latest_readings view...")
+        create_latest_readings_view = """
+        CREATE OR REPLACE VIEW v_latest_readings AS
+        SELECT mr.*
+        FROM moisture_readings mr
+        INNER JOIN (
+            SELECT sensor_id, MAX(timestamp) as max_timestamp
+            FROM moisture_readings
+            GROUP BY sensor_id
+        ) latest ON mr.sensor_id = latest.sensor_id AND mr.timestamp = latest.max_timestamp
+        """
+        
+        cursor.execute(create_latest_readings_view)
+        
+        print("Creating v_daily_summary view...")
+        create_daily_summary_view = """
+        CREATE OR REPLACE VIEW v_daily_summary AS
         SELECT 
             sensor_id,
             DATE(timestamp) as date,
@@ -137,19 +167,19 @@ def setup_database():
         ORDER BY sensor_id, date DESC
         """
         
-        cursor.execute(create_view_query)
+        cursor.execute(create_daily_summary_view)
         
         # Insert some default sensors if they don't exist
         print("Adding default sensor configurations...")
         default_sensors = [
-            ('sensor_001', 'Garden Sensor 1', 'Front Garden', 'Main garden moisture sensor'),
-            ('sensor_002', 'Garden Sensor 2', 'Back Garden', 'Back garden moisture sensor'),
-            ('sensor_003', 'Indoor Plant 1', 'Living Room', 'Indoor plant monitoring'),
+            ('sensor_001', 'Garden Sensor 1', 'Front Garden', 'Main garden moisture sensor', 'active'),
+            ('sensor_002', 'Garden Sensor 2', 'Back Garden', 'Back garden moisture sensor', 'active'),
+            ('sensor_003', 'Indoor Plant 1', 'Living Room', 'Indoor plant monitoring', 'active'),
         ]
         
         insert_sensor_query = """
-        INSERT IGNORE INTO sensors (sensor_id, name, location, description)
-        VALUES (%s, %s, %s, %s)
+        INSERT IGNORE INTO sensor_status (sensor_id, name, location, description, status)
+        VALUES (%s, %s, %s, %s, %s)
         """
         
         for sensor in default_sensors:
