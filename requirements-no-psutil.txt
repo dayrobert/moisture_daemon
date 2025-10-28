@@ -1,0 +1,30 @@
+# Moisture Daemon MQTT Client Dependencies (without psutil)
+# Python 3.8+ required
+
+# MQTT Client
+paho-mqtt==1.6.1
+
+# MySQL Database Connector
+mysql-connector-python==8.2.0
+
+# Configuration and Environment
+python-dotenv==1.0.0
+
+# Logging and Monitoring
+loguru==0.7.2
+
+# Data Processing and Validation
+jsonschema==4.19.1
+python-dateutil==2.8.2
+
+# System Monitoring (optional) - COMMENTED OUT DUE TO FREE-THREADED PYTHON ISSUE
+# psutil==5.9.6
+
+# Development and Testing (optional)
+pytest==7.4.3
+pytest-cov==4.1.0
+black==23.9.1
+flake8==6.1.0
+
+# Health Monitoring and Metrics
+prometheus-client==0.18.0

@@ -40,7 +40,10 @@ def setup_database():
             host=db_host,
             port=db_port,
             user=db_user,
-            password=db_password
+            password=db_password,
+            allow_local_infile=True,
+            use_pure=True,
+            auth_plugin='mysql_native_password'
         )
         
         cursor = connection.cursor()
@@ -199,7 +202,10 @@ def verify_database():
             port=db_port,
             database=db_name,
             user=db_user,
-            password=db_password
+            password=db_password,
+            allow_local_infile=True,
+            use_pure=True,
+            auth_plugin='mysql_native_password'
         )
         
         cursor = connection.cursor()

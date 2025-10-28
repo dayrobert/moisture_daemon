@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  # MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    container_name: moisture_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/config:/mosquitto/config
+      - ./docker/mosquitto/data:/mosquitto/data
+      - ./docker/mosquitto/log:/mosquitto/log
+    networks:
+      - moisture_network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: moisture_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-moisture_db}
+      MYSQL_USER: ${MYSQL_USER:-moisture_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-moisture_pass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - moisture_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Moisture Daemon Application
+  moisture_daemon:
+    build: .
+    container_name: moisture_daemon
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      # MQTT Configuration
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: 1883
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      
+      # Database Configuration
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-moisture_db}
+      DB_USER: ${MYSQL_USER:-moisture_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-moisture_pass}
+      
+      # Application Configuration
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CLIENT_ID: ${CLIENT_ID:-moisture_client}
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ./docker/app/config.ini:/app/config/config.ini
+    networks:
+      - moisture_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Health Monitor (Optional)
+  health_monitor:
+    build: .
+    container_name: moisture_health_monitor
+    restart: unless-stopped
+    depends_on:
+      - moisture_daemon
+    command: ["python", "scripts/health_monitor.py"]
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-moisture_db}
+      DB_USER: ${MYSQL_USER:-moisture_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-moisture_pass}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+      - ./docker/app/config.ini:/app/config/config.ini
+    networks:
+      - moisture_network
+    profiles:
+      - monitoring
+
+  # Prometheus (Optional - for metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: moisture_prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - moisture_network
+    profiles:
+      - monitoring
+
+  # Grafana (Optional - for visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: moisture_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - moisture_network
+    profiles:
+      - monitoring
+
+volumes:
+  mysql_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  moisture_network:
+    driver: bridge

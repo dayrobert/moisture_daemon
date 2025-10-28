@@ -111,7 +111,10 @@ class MoistureClient:
                 database=self.db_name,
                 user=self.db_user,
                 password=self.db_password,
-                autocommit=True
+                autocommit=True,
+                allow_local_infile=True,
+                use_pure=True,
+                auth_plugin='mysql_native_password'
             )
             
             if self.db_connection.is_connected():

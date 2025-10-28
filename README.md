@@ -15,9 +15,9 @@ A Python daemon application that listens to MQTT messages from moisture sensors 
 ## Architecture
 
 ```
-MoistureSensor (ESP32) → MQTT Broker → moisture_daemon → MySQL Database
-                                            ↓
-                                    Health Monitor → Alerts/Metrics
+moisture_sensor (ESP32) → MQTT Broker → moisture_daemon → MySQL Database
+                                             ↓
+                                     Health Monitor → Alerts/Metrics
 ```
 
 ## Directory Structure
@@ -219,6 +219,8 @@ Alternative field names are supported:
 - `temp` instead of `temperature`
 - `battery_level` instead of `battery`
 - `time` instead of `timestamp`
+
+Your ESP32 moisture_sensor should publish JSON messages like this.
 
 ## Logging
 

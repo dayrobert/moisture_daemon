@@ -74,7 +74,10 @@ class HealthMonitor:
                 port=self.db_port,
                 database=self.db_name,
                 user=self.db_user,
-                password=self.db_password
+                password=self.db_password,
+                allow_local_infile=True,
+                use_pure=True,
+                auth_plugin='mysql_native_password'
             )
             return connection
         except Error as e:
