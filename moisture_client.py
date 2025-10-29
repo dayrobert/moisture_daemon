@@ -73,7 +73,7 @@ class MoistureClient:
         # Client configuration
         self.client_id = os.getenv('CLIENT_ID', self.config.get('client', 'id', fallback='moisture_client'))
         self.reconnect_delay = int(os.getenv('RECONNECT_DELAY', self.config.get('client', 'reconnect_delay', fallback='5')))
-        self.max_runtime = int(os.getenv('MAX_RUNTIME', self.config.get('client', 'max_runtime', fallback='300')))  # 5 minutes default
+        # self.max_runtime = int(os.getenv('MAX_RUNTIME', self.config.get('client', 'max_runtime', fallback='300')))  # 5 minutes default
     
     def _setup_logging(self):
         """Setup logging configuration."""
@@ -135,7 +135,7 @@ class MoistureClient:
             temperature FLOAT,
             humidity FLOAT,
             battery_level FLOAT,
-            raw_data JSON,
+            metadata JSON,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_sensor_timestamp (sensor_id, timestamp),
             INDEX idx_timestamp (timestamp)
@@ -199,7 +199,7 @@ class MoistureClient:
         """Store sensor data in MySQL database."""
         try:
             # Extract common sensor data fields
-            moisture_level = data.get('moisture', data.get('moisture_level', 0.0))
+            moisture_level = data.get('moisture', data.get('moisture_percentage', 0.0))
             temperature = data.get('temperature', data.get('temp', None))
             humidity = data.get('humidity', None)
             battery_level = data.get('battery', data.get('battery_level', None))
@@ -226,7 +226,7 @@ class MoistureClient:
             # Insert data into database
             insert_query = """
             INSERT INTO moisture_readings 
-            (sensor_id, timestamp, moisture_level, temperature, humidity, battery_level, raw_data)
+            (sensor_id, timestamp, moisture_level, temperature, humidity, battery_level, metadata)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             
@@ -298,10 +298,6 @@ class MoistureClient:
             # Run for specified duration or until interrupted
             while self.running:
                 # Check if max runtime exceeded (useful for cron jobs)
-                if time.time() - start_time > self.max_runtime:
-                    self.logger.info(f"Max runtime ({self.max_runtime}s) reached. Shutting down.")
-                    break
-                
                 # Check database connection
                 if not self.db_connection.is_connected():
                     self.logger.warning("Database connection lost. Attempting to reconnect...")

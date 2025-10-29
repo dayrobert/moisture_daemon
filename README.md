@@ -133,7 +133,7 @@ Stores sensor data:
 - `temperature`: Temperature (optional)
 - `humidity`: Humidity (optional)
 - `battery_level`: Battery percentage (optional)
-- `raw_data`: Original JSON payload
+- `metadata`: Original JSON payload
 - `created_at`: Record creation timestamp
 
 ### sensors
